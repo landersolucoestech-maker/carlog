@@ -3,12 +3,14 @@ import { processOneDomainEvent } from './domain-events.js';
 import { processOneIntegrationAction } from './integration-actions.js';
 import { processOneAutomation } from './automations.js';
 import { processOneAiSkill } from './ai-skills.js';
+import { runMaintenanceIfDue } from './maintenance.js';
 
 const pollIntervalMs = Math.max(100, Number(process.env.WORKER_POLL_INTERVAL_MS ?? 1000));
 let stopping = false;
 
 async function processAvailableWork(): Promise<boolean> {
   let processed = false;
+  processed = (await runMaintenanceIfDue()) || processed;
   processed = (await processOneDomainEvent()) || processed;
   processed = (await processOneAutomation()) || processed;
   processed = (await processOneAiSkill()) || processed;
