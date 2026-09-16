@@ -27,7 +27,7 @@ type AuthState = {
 const previewMode = process.env.NEXT_PUBLIC_PREVIEW_MODE === '1';
 const previewUser: CurrentUser = {
   id: 'github-pages-preview',
-  email: 'preview@carlogconnection.com',
+  email: 'preview@carlog.invalid',
   displayName: 'Car Log Preview',
   active: true,
   roles: ['preview'],
