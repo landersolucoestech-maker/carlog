@@ -4,7 +4,7 @@
 
 Car Log is a single-company operating system for Car Log Connection. It is not a multi-company or tenant-partitioned SaaS product. Authentication identifies an internal user; authorization is enforced through roles and granular permissions. There is no company switcher and no company-scoped partition key in operational entities.
 
-The existing public Car Log website is a preserved external product surface. This repository does not redesign, replace or deploy that frontend. Website-originated leads, chat, attribution and CMS integrations are exposed through platform APIs and provider boundaries so the existing site can integrate without surrendering ownership of its presentation layer. Any future change to the public website frontend requires explicit product scope.
+This repository does not embed or depend on an external public-site URL. Website-originated leads, chat, attribution and CMS integrations are exposed through platform APIs and provider boundaries so a separately managed website can integrate explicitly without coupling its presentation layer to this repository.
 
 ## Repository layout
 
@@ -20,23 +20,21 @@ The existing public Car Log website is a preserved external product surface. Thi
 - `packages/auth` — roles, permissions and authorization contracts.
 - `packages/ui` — shared Car Log design system for the operating system.
 - `supabase/migrations` — PostgreSQL schema migrations.
-- `infrastructure/docker` — production containers for the operating system services.
-- `infrastructure/nginx` — reverse proxy configuration for Admin and API subdomains only.
+- `infrastructure/docker` — production containers for the operating-system services.
+- `infrastructure/nginx` — reverse-proxy template for Admin and API endpoints.
 - `infrastructure/hostinger` — Hostinger VPS deployment and migration scripts for the operating system.
 
 ## Runtime topology
 
-Production deployment is performed only from the `dev` branch by GitHub Actions. Validation must pass before deployment. The deployment job connects to the Hostinger VPS, updates the existing `dev` checkout with a fast-forward-only pull, applies migrations, builds and starts the Car Log OS Docker Compose services, installs an isolated Nginx configuration for OS subdomains, validates Nginx and performs health checks.
+Production deployment is performed only from the `dev` branch by GitHub Actions. Validation must pass before deployment. The deployment job connects to the Hostinger VPS, updates the existing `dev` checkout with a fast-forward-only pull, applies migrations, builds and starts the Car Log OS Docker Compose services, renders the Nginx configuration from production environment values, validates Nginx and performs health checks.
 
-Production services managed by this repository:
+Production endpoints are configuration:
 
-- `admin.carlogconnection.com` → `apps/admin` on the admin container.
-- `api.carlogconnection.com` → `apps/api` on the API container.
+- `ADMIN_URL` → `apps/admin` on the admin container.
+- `API_URL` → `apps/api` on the API container.
 - `apps/worker` runs without a public HTTP endpoint.
 
-`carlogconnection.com` and `www.carlogconnection.com` are intentionally not owned by this deployment. The existing public website remains untouched by the Car Log OS Compose project and Nginx configuration.
-
-GitHub Pages is used only for a read-only Admin OS preview while production VPS access is unavailable. It is not a public-website deployment target.
+No public marketing hostname is hardcoded in this repository. GitHub Pages is used only for a read-only Admin OS preview while production VPS access is unavailable.
 
 No alternative production deployment platform is part of the canonical runtime.
 
@@ -55,7 +53,7 @@ Supabase Auth provides user identity. Car Log maintains the internal user profil
 - Finance owns customer payments, carrier payments and derived receivable/payable state.
 - Communications owns conversations, messages and calls across supported channels.
 - Documents owns private files associated with operational entities.
-- CMS owns versioned content and publication state exposed to authorized integrations without implicitly replacing the public website frontend.
+- CMS owns versioned content and publication state exposed to authorized integrations.
 
 ## Integration Platform
 
@@ -77,7 +75,7 @@ AI skills are versioned resources with input/output contracts, allowed tools, re
 
 ## Communication model
 
-The Unified Inbox normalizes website-originated chat, Dialpad SMS, Dialpad calls and supported social channels into conversations. A conversation may be linked to a contact, customer, lead, quote, order or carrier. Website context can preserve visitor/session identity, current page, referrer and campaign identifiers such as UTM parameters, GCLID, FBCLID and TTCLID when the existing public site explicitly integrates those endpoints.
+The Unified Inbox normalizes website-originated chat, Dialpad SMS, Dialpad calls and supported social channels into conversations. A conversation may be linked to a contact, customer, lead, quote, order or carrier. Website context can preserve visitor/session identity, current page, referrer and campaign identifiers such as UTM parameters, GCLID, FBCLID and TTCLID when a separately managed website explicitly integrates those endpoints.
 
 ## Security rules
 
@@ -88,4 +86,4 @@ The Unified Inbox normalizes website-originated chat, Dialpad SMS, Dialpad calls
 - Operational tables are not exposed as unrestricted browser CRUD.
 - Audit records identify the acting user, action, entity and correlation context.
 - Production deployment is accepted only from `dev` with a clean, synchronized checkout.
-- Car Log OS deployment must not alter the existing public website runtime or Nginx ownership.
+- Production endpoint hostnames must come from configuration and may not use the deprecated public hostname.
