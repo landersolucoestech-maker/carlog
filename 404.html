@@ -3,21 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Car Log Connection</title>
-  <style>
-    html,body,iframe{margin:0;width:100%;height:100%;border:0}
-    html,body{overflow:hidden}
-    iframe{display:block}
-  </style>
+  <title>Car Log Admin OS</title>
 </head>
 <body>
-  <iframe id="site" src="https://carlogconnection.com/" title="Car Log Connection"></iframe>
+  <p><a id="admin-link" href="/carlog/admin/">Open Car Log Admin OS</a></p>
   <script>
-    const p = location.pathname.replace(/^\/carlogconnection\/?/, "");
-    const q = location.search || "";
-    const h = location.hash || "";
-    document.getElementById("site").src =
-      "https://carlogconnection.com/" + p + q + h;
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const projectBase = window.location.hostname.endsWith('github.io') && pathParts.length
+      ? `/${pathParts[0]}/`
+      : '/';
+    const target = `${projectBase}admin/${window.location.search}${window.location.hash}`;
+    document.getElementById('admin-link').setAttribute('href', target);
+    window.location.replace(target);
   </script>
 </body>
 </html>
