@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { access, readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 const root = process.cwd();
@@ -8,6 +8,11 @@ const textExtensions = new Set(['.ts','.tsx','.js','.mjs','.sql','.md','.yml','.
 const failures = [];
 
 async function walk(path) {
+  try {
+    await access(path);
+  } catch {
+    return;
+  }
   for (const name of await readdir(path)) {
     if (ignored.has(name)) continue;
     const full = join(path,name);
