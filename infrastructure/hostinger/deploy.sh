@@ -38,14 +38,14 @@ set -a
 source .env.production
 set +a
 
-for name in ADMIN_URL API_URL NEXT_PUBLIC_API_URL CARLOG_TLS_CERT_NAME; do
+for name in PUBLIC_WEB_URL ADMIN_URL API_URL NEXT_PUBLIC_API_URL CARLOG_TLS_CERT_NAME; do
   if [[ -z "${!name:-}" ]]; then
     echo "Missing required production environment variable: $name" >&2
     exit 1
   fi
 done
 
-for url_name in ADMIN_URL API_URL NEXT_PUBLIC_API_URL; do
+for url_name in PUBLIC_WEB_URL ADMIN_URL API_URL NEXT_PUBLIC_API_URL; do
   value="${!url_name}"
   if [[ "$value" =~ carlogconnection[.]com ]]; then
     echo "$url_name uses the deprecated hostname and is not allowed." >&2
@@ -65,6 +65,7 @@ host_from_url() {
   printf '%s' "$value"
 }
 
+public_host="$(host_from_url "$PUBLIC_WEB_URL")"
 admin_host="$(host_from_url "$ADMIN_URL")"
 api_host="$(host_from_url "$API_URL")"
 if [[ ! "$CARLOG_TLS_CERT_NAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
@@ -96,6 +97,7 @@ for attempt in {1..30}; do
   sleep 2
 done
 
+curl --fail --silent http://127.0.0.1:3000/ >/dev/null
 curl --fail --silent http://127.0.0.1:3001/ >/dev/null
 
 if command -v nginx >/dev/null 2>&1; then
@@ -117,6 +119,7 @@ if command -v nginx >/dev/null 2>&1; then
   rendered_config="$(mktemp)"
   trap 'rm -f "$rendered_config"' EXIT
   sed \
+    -e "s/__PUBLIC_HOST__/$public_host/g" \
     -e "s/__ADMIN_HOST__/$admin_host/g" \
     -e "s/__API_HOST__/$api_host/g" \
     -e "s/__TLS_CERT_NAME__/$CARLOG_TLS_CERT_NAME/g" \
@@ -137,4 +140,4 @@ if command -v nginx >/dev/null 2>&1; then
   fi
 fi
 
-echo "Car Log OS deployed from dev at commit $local_head"
+echo "Car Log website and OS deployed from dev at commit $local_head"
