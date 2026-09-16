@@ -4,20 +4,189 @@ import { FormEvent, useEffect, useState } from 'react';
 import { apiRequest } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 
-type Definition={id:string;key:string;name:string;version:number;status:string;definition:Record<string,unknown>;updated_at:string};
-type Execution={id:string;key:string;name:string;status:string;current_action_id:string|null;started_at:string;completed_at:string|null;error:string|null};
-const actionTypes=['wait','create.task','update.lead','send.message','integration.action','run.ai_skill'] as const;
+type Definition = {
+  id: string;
+  key: string;
+  name: string;
+  version: number;
+  status: string;
+  definition: Record<string, unknown>;
+  updated_at: string;
+};
 
-export function AutomationView(){
-  const {user}=useAuth();const [definitions,setDefinitions]=useState<Definition[]>([]);const [executions,setExecutions]=useState<Execution[]>([]);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
-  async function load(){setError('');try{const [d,e]=await Promise.all([apiRequest<Definition[]>('/v1/automations'),apiRequest<Execution[]>('/v1/automations/executions')]);setDefinitions(d);setExecutions(e)}catch(reason){setError(reason instanceof Error?reason.message:'Automation loading failed')}}
-  useEffect(()=>{void load()},[]);
-  async function create(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError('');const form=new FormData(event.currentTarget);let input:Record<string,unknown>={};try{input=JSON.parse(String(form.get('input')||'{}')) as Record<string,unknown>}catch{setBusy(false);setError('Action input must be valid JSON.');return}try{const key=String(form.get('key')??'').trim();const name=String(form.get('name')??'').trim();const actionType=String(form.get('actionType'));const approval=String(form.get('approvalPolicy')) as 'none'|'manual';await apiRequest('/v1/automations',{method:'POST',body:JSON.stringify({key,name,definition:{trigger:{type:'event',eventType:String(form.get('eventType'))},conditions:[],thenActions:[{id:'action-1',type:actionType,input,approvalPolicy:approval,retry:{maxAttempts:3,delayMs:30000},timeoutMs:30000}],elseActions:[]}})});event.currentTarget.reset();await load()}catch(reason){setError(reason instanceof Error?reason.message:'Automation creation failed')}finally{setBusy(false)}}
-  async function command(path:string){setBusy(true);setError('');try{await apiRequest(path,{method:'POST',body:path.endsWith('/run')?JSON.stringify({context:{source:'admin'}}):undefined});await load()}catch(reason){setError(reason instanceof Error?reason.message:'Automation action failed')}finally{setBusy(false)}}
-  const canManage=user?.permissions.includes('automation.manage');const canPublish=user?.permissions.includes('automation.publish');
-  return <main className="page"><div className="page-header"><div><h1>Automations</h1><p>Event-driven workflows with conditions, branching, waits, retries, explicit action permissions and human approval.</p></div><button className="icon-button" onClick={()=>void load()}>Refresh</button></div>{error?<div className="error-state">{error}</div>:null}
-    {canManage?<form className="panel" onSubmit={create} style={{marginBottom:18}}><div className="panel-head"><h2>Create Workflow Version</h2><span>Creates a draft with one initial action; additional versions preserve execution history.</span></div><div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr 1.4fr 1fr 1fr',gap:10,padding:16}}><input name="key" required placeholder="workflow.key" style={{padding:10,border:'1px solid var(--carlog-border)',borderRadius:9}}/><input name="name" required placeholder="Workflow name" style={{padding:10,border:'1px solid var(--carlog-border)',borderRadius:9}}/><input name="eventType" required placeholder="lead.created" style={{padding:10,border:'1px solid var(--carlog-border)',borderRadius:9}}/><select name="actionType" style={{padding:10,border:'1px solid var(--carlog-border)',borderRadius:9}}>{actionTypes.map(type=><option key={type}>{type}</option>)}</select><select name="approvalPolicy" style={{padding:10,border:'1px solid var(--carlog-border)',borderRadius:9}}><option value="none">Automatic action</option><option value="manual">Human approval</option></select><textarea name="input" defaultValue="{}" style={{gridColumn:'1/-2',minHeight:80,padding:10,border:'1px solid var(--carlog-border)',borderRadius:9,fontFamily:'monospace'}}/><button className="icon-button" disabled={busy}>Create Draft</button></div></form>:null}
-    <div className="two-column"><section className="panel"><div className="panel-head"><h2>Definitions</h2><span>{definitions.length} versions</span></div><div className="table-wrap"><table className="data-table"><thead><tr><th>Workflow</th><th>Version</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>{definitions.map(item=><tr key={item.id}><td><strong>{item.name}</strong><br/><small>{item.key}</small></td><td>{item.version}</td><td><span className="badge">{item.status}</span></td><td>{new Date(item.updated_at).toLocaleString('en-US')}</td><td>{canPublish&&item.status==='draft'?<button className="icon-button" disabled={busy} onClick={()=>void command(`/v1/automations/${item.id}/publish`)}>Publish</button>:null} {canManage&&item.status!=='disabled'?<button className="icon-button" disabled={busy} onClick={()=>void command(`/v1/automations/${item.id}/run`)}>Run</button>:null}</td></tr>)}</tbody></table></div></section>
-      <section className="panel"><div className="panel-head"><h2>Execution History</h2><span>{executions.length} recent runs</span></div><div className="table-wrap"><table className="data-table"><thead><tr><th>Workflow</th><th>Status</th><th>Action</th><th>Started</th><th>Control</th></tr></thead><tbody>{executions.map(item=><tr key={item.id}><td>{item.name}<br/><small>{item.key}</small></td><td><span className="badge" data-tone={item.status==='completed'?'good':item.status==='failed'?'bad':item.status==='waiting_approval'?'warn':undefined}>{item.status}</span>{item.error?<><br/><small>{item.error}</small></>:null}</td><td>{item.current_action_id??'—'}</td><td>{new Date(item.started_at).toLocaleString('en-US')}</td><td>{canManage&&item.status==='waiting_approval'?<button className="icon-button" disabled={busy} onClick={()=>void command(`/v1/automations/executions/${item.id}/approve`)}>Approve</button>:null}</td></tr>)}</tbody></table></div></section></div>
+type Execution = {
+  id: string;
+  key: string;
+  name: string;
+  status: string;
+  current_action_id: string | null;
+  started_at: string;
+  completed_at: string | null;
+  error: string | null;
+};
+
+const actionTypes = ['wait', 'create.task', 'update.lead', 'send.message', 'integration.action', 'run.ai_skill'] as const;
+
+export function AutomationView() {
+  const { user } = useAuth();
+  const [definitions, setDefinitions] = useState<Definition[]>([]);
+  const [executions, setExecutions] = useState<Execution[]>([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setError('');
+    try {
+      const [definitionRows, executionRows] = await Promise.all([
+        apiRequest<Definition[]>('/v1/automations'),
+        apiRequest<Execution[]>('/v1/automations/executions'),
+      ]);
+      setDefinitions(definitionRows);
+      setExecutions(executionRows);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Automation loading failed');
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    const form = new FormData(event.currentTarget);
+    let input: Record<string, unknown> = {};
+    try {
+      input = JSON.parse(String(form.get('input') || '{}')) as Record<string, unknown>;
+    } catch {
+      setBusy(false);
+      setError('Action input must be valid JSON.');
+      return;
+    }
+
+    try {
+      const key = String(form.get('key') ?? '').trim();
+      const name = String(form.get('name') ?? '').trim();
+      const actionType = String(form.get('actionType'));
+      const approval = String(form.get('approvalPolicy')) as 'none' | 'manual';
+      await apiRequest('/v1/automations', {
+        method: 'POST',
+        body: JSON.stringify({
+          key,
+          name,
+          definition: {
+            trigger: { type: 'event', eventType: String(form.get('eventType')) },
+            conditions: [],
+            thenActions: [{
+              id: 'action-1',
+              type: actionType,
+              input,
+              approvalPolicy: approval,
+              retry: { maxAttempts: 3, delayMs: 30000 },
+              timeoutMs: 30000,
+            }],
+            elseActions: [],
+          },
+        }),
+      });
+      event.currentTarget.reset();
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Automation creation failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function command(path: string) {
+    setBusy(true);
+    setError('');
+    try {
+      const init: RequestInit = { method: 'POST' };
+      if (path.endsWith('/run')) init.body = JSON.stringify({ context: { source: 'admin' } });
+      await apiRequest(path, init);
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Automation action failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canManage = user?.permissions.includes('automation.manage');
+  const canPublish = user?.permissions.includes('automation.publish');
+
+  return <main className="page">
+    <div className="page-header">
+      <div>
+        <h1>Automations</h1>
+        <p>Event-driven workflows with conditions, branching, waits, retries, explicit action permissions and human approval.</p>
+      </div>
+      <button className="icon-button" onClick={() => void load()}>Refresh</button>
+    </div>
+    {error ? <div className="error-state">{error}</div> : null}
+
+    {canManage ? <form className="panel" onSubmit={create} style={{ marginBottom: 18 }}>
+      <div className="panel-head">
+        <h2>Create Workflow Version</h2>
+        <span>Creates a draft with one initial action; additional versions preserve execution history.</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1.4fr 1fr 1fr', gap: 10, padding: 16 }}>
+        <input name="key" required placeholder="workflow.key" style={{ padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9 }} />
+        <input name="name" required placeholder="Workflow name" style={{ padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9 }} />
+        <input name="eventType" required placeholder="lead.created" style={{ padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9 }} />
+        <select name="actionType" style={{ padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9 }}>
+          {actionTypes.map(type => <option key={type}>{type}</option>)}
+        </select>
+        <select name="approvalPolicy" style={{ padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9 }}>
+          <option value="none">Automatic action</option>
+          <option value="manual">Human approval</option>
+        </select>
+        <textarea name="input" defaultValue="{}" style={{ gridColumn: '1/-2', minHeight: 80, padding: 10, border: '1px solid var(--carlog-border)', borderRadius: 9, fontFamily: 'monospace' }} />
+        <button className="icon-button" disabled={busy}>Create Draft</button>
+      </div>
+    </form> : null}
+
+    <div className="two-column">
+      <section className="panel">
+        <div className="panel-head"><h2>Definitions</h2><span>{definitions.length} versions</span></div>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead><tr><th>Workflow</th><th>Version</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+            <tbody>{definitions.map(item => <tr key={item.id}>
+              <td><strong>{item.name}</strong><br /><small>{item.key}</small></td>
+              <td>{item.version}</td>
+              <td><span className="badge">{item.status}</span></td>
+              <td>{new Date(item.updated_at).toLocaleString('en-US')}</td>
+              <td>
+                {canPublish && item.status === 'draft' ? <button className="icon-button" disabled={busy} onClick={() => void command(`/v1/automations/${item.id}/publish`)}>Publish</button> : null}{' '}
+                {canManage && item.status !== 'disabled' ? <button className="icon-button" disabled={busy} onClick={() => void command(`/v1/automations/${item.id}/run`)}>Run</button> : null}
+              </td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head"><h2>Execution History</h2><span>{executions.length} recent runs</span></div>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead><tr><th>Workflow</th><th>Status</th><th>Action</th><th>Started</th><th>Control</th></tr></thead>
+            <tbody>{executions.map(item => <tr key={item.id}>
+              <td>{item.name}<br /><small>{item.key}</small></td>
+              <td>
+                <span className="badge" data-tone={item.status === 'completed' ? 'good' : item.status === 'failed' ? 'bad' : item.status === 'waiting_approval' ? 'warn' : undefined}>{item.status}</span>
+                {item.error ? <><br /><small>{item.error}</small></> : null}
+              </td>
+              <td>{item.current_action_id ?? '—'}</td>
+              <td>{new Date(item.started_at).toLocaleString('en-US')}</td>
+              <td>{canManage && item.status === 'waiting_approval' ? <button className="icon-button" disabled={busy} onClick={() => void command(`/v1/automations/executions/${item.id}/approve`)}>Approve</button> : null}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </main>;
 }
