@@ -22,7 +22,7 @@ jobs:
     env:
       CARLOG_PAGES_PREVIEW: '1'
       NEXT_PUBLIC_PREVIEW_MODE: '1'
-      NEXT_PUBLIC_API_URL: https://api.carlogconnection.com
+      NEXT_PUBLIC_API_URL: https://api.preview.invalid
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_preview_only
       NEXT_TELEMETRY_DISABLED: '1'
