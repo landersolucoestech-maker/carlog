@@ -1,2 +1,5 @@
-Car Log Connection site package.
-This package renders the live original site from https://carlogconnection.com/ to preserve the original HTML/CSS/JS/assets and responsive behavior.
+Car Log Connection platform repository.
+
+Production architecture is being consolidated directly on the dev branch under apps/, packages/, supabase/, infrastructure/, tests/, and docs/.
+
+The legacy public wrapper remains temporarily preserved while the new web application and Admin OS are migrated into the canonical architecture.
