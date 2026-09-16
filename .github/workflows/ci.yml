@@ -72,11 +72,11 @@ jobs:
     timeout-minutes: 45
     environment: production
     env:
-      HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
-      HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+      HOSTINGER_HOST: ${{ vars.HOSTINGER_HOST }}
+      HOSTINGER_USER: ${{ vars.HOSTINGER_USER }}
       HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
       HOSTINGER_PORT: ${{ vars.HOSTINGER_PORT || '22' }}
-      HOSTINGER_APP_PATH: ${{ vars.HOSTINGER_APP_PATH || '' }}
+      HOSTINGER_APP_PATH: ${{ vars.HOSTINGER_APP_PATH || '.local/share/carlog' }}
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
@@ -90,12 +90,16 @@ jobs:
           set -euo pipefail
           test "$(git branch --show-current)" = "dev"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/dev)"
-          for name in HOSTINGER_HOST HOSTINGER_USER HOSTINGER_SSH_PRIVATE_KEY; do
+          for name in HOSTINGER_HOST HOSTINGER_USER; do
             if [[ -z "${!name:-}" ]]; then
-              echo "Missing required GitHub Actions secret: $name" >&2
+              echo "Missing required GitHub Actions production variable: $name" >&2
               exit 1
             fi
           done
+          if [[ -z "${HOSTINGER_SSH_PRIVATE_KEY:-}" ]]; then
+            echo "Missing required GitHub Actions production secret: HOSTINGER_SSH_PRIVATE_KEY" >&2
+            exit 1
+          fi
 
       - name: Configure SSH
         shell: bash
@@ -111,17 +115,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          remote_path="$HOSTINGER_APP_PATH"
-          if [[ -z "$remote_path" ]]; then
-            remote_path='.local/share/carlog'
-          fi
           ssh \
             -i "$HOME/.ssh/carlog_hostinger" \
             -p "$HOSTINGER_PORT" \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$HOSTINGER_USER@$HOSTINGER_HOST" \
-            "bash -s -- '$remote_path'" <<'REMOTE'
+            "bash -s -- '$HOSTINGER_APP_PATH'" <<'REMOTE'
           set -euo pipefail
           app_path="$1"
           if [[ "$app_path" != /* ]]; then
