@@ -51,9 +51,6 @@ jobs:
       - name: Build shared packages
         run: pnpm -r --filter './packages/**' run build
 
-      - name: Build website preview
-        run: pnpm --filter @carlog/web build
-
       - name: Build admin preview
         run: pnpm --filter @carlog/admin build
 
@@ -63,7 +60,8 @@ jobs:
           set -euo pipefail
           rm -rf .pages-preview
           mkdir -p .pages-preview/admin
-          cp -R apps/web/out/. .pages-preview/
+          cp index.html .pages-preview/index.html
+          cp 404.html .pages-preview/404.html
           cp -R apps/admin/out/. .pages-preview/admin/
           touch .pages-preview/.nojekyll
 

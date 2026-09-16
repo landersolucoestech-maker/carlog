@@ -1,20 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Car Log Admin OS</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Page Not Found | Car Log</title>
+  <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111318;color:#fff;font-family:Inter,system-ui,sans-serif}.wrap{padding:32px;text-align:center}.code{font-size:72px;font-weight:900;color:#ef6c24}.wrap a{display:inline-block;margin-top:20px;padding:12px 16px;border-radius:10px;background:#ef6c24;color:#fff;text-decoration:none;font-weight:800}</style>
 </head>
 <body>
-  <p><a id="admin-link" href="/carlog/admin/">Open Car Log Admin OS</a></p>
-  <script>
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const projectBase = window.location.hostname.endsWith('github.io') && pathParts.length
-      ? `/${pathParts[0]}/`
-      : '/';
-    const target = `${projectBase}admin/${window.location.search}${window.location.hash}`;
-    document.getElementById('admin-link').setAttribute('href', target);
-    window.location.replace(target);
-  </script>
+  <div class="wrap"><div class="code">404</div><h1>Page not found</h1><p>The requested Car Log page does not exist.</p><a id="home" href="./">Back to Car Log</a></div>
+  <script>const parts=location.pathname.split('/').filter(Boolean);const base=location.hostname.endsWith('github.io')&&parts.length?`/${parts[0]}/`:'/';document.getElementById('home').href=base;</script>
 </body>
 </html>
