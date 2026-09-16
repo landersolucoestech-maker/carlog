@@ -311,15 +311,25 @@ export function normalizeDialpadSmsEvent(payload: Record<string, unknown>): Dial
   };
 }
 
-function base64UrlToBytes(value: string): Uint8Array {
+function base64UrlToBuffer(value: string): ArrayBuffer {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
   const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return buffer;
 }
 
-function bytesToString(bytes: Uint8Array): string {
-  return new TextDecoder().decode(bytes);
+function stringToBuffer(value: string): ArrayBuffer {
+  const source = new TextEncoder().encode(value);
+  const buffer = new ArrayBuffer(source.byteLength);
+  new Uint8Array(buffer).set(source);
+  return buffer;
+}
+
+function bufferToString(buffer: ArrayBuffer): string {
+  return new TextDecoder().decode(buffer);
 }
 
 export async function verifyDialpadWebhookJwt(token: string, secret: string): Promise<Record<string, unknown>> {
@@ -329,11 +339,11 @@ export async function verifyDialpadWebhookJwt(token: string, secret: string): Pr
   if (!encodedHeader || !encodedPayload || !encodedSignature) {
     throw new ProviderError('dialpad', 'INVALID_WEBHOOK_JWT', 'Malformed Dialpad webhook token', false);
   }
-  const header = JSON.parse(bytesToString(base64UrlToBytes(encodedHeader))) as Record<string, unknown>;
+  const header = JSON.parse(bufferToString(base64UrlToBuffer(encodedHeader))) as Record<string, unknown>;
   if (header.alg !== 'HS256') throw new ProviderError('dialpad', 'INVALID_WEBHOOK_ALGORITHM', 'Dialpad webhook must use HS256', false);
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    stringToBuffer(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['verify'],
@@ -341,11 +351,11 @@ export async function verifyDialpadWebhookJwt(token: string, secret: string): Pr
   const valid = await crypto.subtle.verify(
     'HMAC',
     key,
-    base64UrlToBytes(encodedSignature),
-    new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`),
+    base64UrlToBuffer(encodedSignature),
+    stringToBuffer(`${encodedHeader}.${encodedPayload}`),
   );
   if (!valid) throw new ProviderError('dialpad', 'INVALID_WEBHOOK_SIGNATURE', 'Dialpad webhook signature verification failed', false);
-  const payload = JSON.parse(bytesToString(base64UrlToBytes(encodedPayload))) as unknown;
+  const payload = JSON.parse(bufferToString(base64UrlToBuffer(encodedPayload))) as unknown;
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new ProviderError('dialpad', 'INVALID_WEBHOOK_PAYLOAD', 'Dialpad webhook payload must be an object', false);
   }
