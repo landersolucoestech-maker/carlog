@@ -76,7 +76,7 @@ create index role_permissions_permission_idx on app.role_permissions(permission_
 create table app.company_settings (
   id smallint primary key default 1 check (id = 1),
   name text not null default 'Car Log Connection',
-  website_url text not null default 'https://carlogconnection.com',
+  website_url text,
   timezone text not null default 'America/New_York',
   currency text not null default 'USD',
   support_email text,
