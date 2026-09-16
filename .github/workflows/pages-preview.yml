@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Build shared packages
+        run: pnpm -r --filter './packages/**' run build
+
       - name: Build public website preview
         run: pnpm --filter @carlog/web build
 
