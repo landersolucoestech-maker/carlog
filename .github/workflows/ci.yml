@@ -74,6 +74,8 @@ jobs:
       HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
       HOSTINGER_PORT: ${{ vars.HOSTINGER_PORT || '22' }}
       HOSTINGER_APP_PATH: ${{ vars.HOSTINGER_APP_PATH || '.local/share/carlog' }}
+      ADMIN_URL: ${{ vars.ADMIN_URL }}
+      API_URL: ${{ vars.API_URL }}
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
@@ -87,16 +89,26 @@ jobs:
           set -euo pipefail
           test "$(git branch --show-current)" = "dev"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/dev)"
-          for name in HOSTINGER_HOST HOSTINGER_USER; do
+
+          for name in HOSTINGER_HOST HOSTINGER_USER ADMIN_URL API_URL; do
             if [[ -z "${!name:-}" ]]; then
               echo "Missing required GitHub Actions production variable: $name" >&2
               exit 1
             fi
           done
+
           if [[ -z "${HOSTINGER_SSH_PRIVATE_KEY:-}" ]]; then
             echo "Missing required GitHub Actions production secret: HOSTINGER_SSH_PRIVATE_KEY" >&2
             exit 1
           fi
+
+          for url_name in ADMIN_URL API_URL; do
+            value="${!url_name}"
+            if [[ "$value" =~ carlogconnection[.]com ]]; then
+              echo "$url_name uses the deprecated hostname and is not allowed." >&2
+              exit 1
+            fi
+          done
 
       - name: Configure SSH
         shell: bash
@@ -150,8 +162,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors https://admin.carlogconnection.com/ >/dev/null
-          curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors https://api.carlogconnection.com/health | grep -q '"status":"ok"'
+          admin_endpoint="${ADMIN_URL%/}/"
+          api_endpoint="${API_URL%/}/health"
+          curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors "$admin_endpoint" >/dev/null
+          curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors "$api_endpoint" | grep -q '"status":"ok"'
 
       - name: Deployment summary
         if: success()
@@ -159,5 +173,5 @@ jobs:
           echo "### Car Log OS deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch: dev" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Admin: https://admin.carlogconnection.com/" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API: https://api.carlogconnection.com/health" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Admin: $ADMIN_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: $API_URL" >> "$GITHUB_STEP_SUMMARY"
