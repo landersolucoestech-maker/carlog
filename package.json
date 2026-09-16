@@ -13,6 +13,11 @@
     "build": "pnpm run build:packages && pnpm --filter @carlog/api build && pnpm --filter @carlog/worker build && pnpm --filter @carlog/web build && pnpm --filter @carlog/admin build",
     "typecheck": "pnpm run typecheck:packages && pnpm --filter @carlog/api typecheck && pnpm --filter @carlog/worker typecheck && pnpm --filter @carlog/web typecheck && pnpm --filter @carlog/admin typecheck"
   },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.8.3"
+    }
+  },
   "engines": {
     "node": ">=22"
   },
