@@ -96,7 +96,7 @@ test('contact resolution prefers provider identity before email and phone', () =
 
 test('website attribution preserves campaign and click identifiers', () => {
   const context = deriveWebsiteAttribution(
-    'https://carlogconnection.com/quote?visitor_id=v-1&session_id=s-1&utm_source=google&utm_medium=cpc&utm_campaign=miami-boston&utm_id=cmp-7&gclid=g-1&fbclid=f-1&ttclid=t-1',
+    'https://example.invalid/quote?visitor_id=v-1&session_id=s-1&utm_source=google&utm_medium=cpc&utm_campaign=miami-boston&utm_id=cmp-7&gclid=g-1&fbclid=f-1&ttclid=t-1',
     'https://google.com/',
   );
   assert.equal(context.anonymousVisitorId, 'v-1');
