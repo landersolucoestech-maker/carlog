@@ -38,6 +38,11 @@ set -a
 source .env.production
 set +a
 
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+  echo "Docker with the Compose plugin is required on the Hostinger VPS." >&2
+  exit 1
+fi
+
 "$ROOT_DIR/infrastructure/hostinger/apply-migrations.sh"
 
 docker compose -f infrastructure/docker/compose.production.yml build --pull
@@ -59,8 +64,33 @@ curl --fail --silent http://127.0.0.1:3000/ >/dev/null
 curl --fail --silent http://127.0.0.1:3001/ >/dev/null
 
 if command -v nginx >/dev/null 2>&1; then
-  nginx -t
-  systemctl reload nginx
+  privilege=()
+  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+    if ! command -v sudo >/dev/null 2>&1; then
+      echo "Nginx is installed but root privileges or sudo are required to update its configuration." >&2
+      exit 1
+    fi
+    privilege=(sudo)
+  fi
+
+  if [[ ! -f /etc/letsencrypt/live/carlogconnection.com/fullchain.pem || ! -f /etc/letsencrypt/live/carlogconnection.com/privkey.pem ]]; then
+    echo "TLS certificate for carlogconnection.com is missing. Provision Let's Encrypt before enabling the HTTPS proxy." >&2
+    exit 1
+  fi
+
+  if [[ -d /etc/nginx/sites-available ]]; then
+    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog.conf /etc/nginx/sites-available/carlog.conf
+    "${privilege[@]}" ln -sfn /etc/nginx/sites-available/carlog.conf /etc/nginx/sites-enabled/carlog.conf
+  else
+    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog.conf /etc/nginx/conf.d/carlog.conf
+  fi
+
+  "${privilege[@]}" nginx -t
+  if command -v systemctl >/dev/null 2>&1; then
+    "${privilege[@]}" systemctl reload nginx
+  else
+    "${privilege[@]}" nginx -s reload
+  fi
 fi
 
 echo "Car Log deployed from dev at commit $local_head"
