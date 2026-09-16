@@ -1,0 +1,55 @@
+name: Car Log CI
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_only
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Core typecheck and tests
+        run: npm run check:core
+
+      - name: Architecture audit
+        run: npm run audit:architecture
+
+      - name: Build shared packages
+        run: pnpm -r --filter './packages/**' run build
+
+      - name: Build API
+        run: pnpm --filter @carlog/api build
+
+      - name: Build worker
+        run: pnpm --filter @carlog/worker build
+
+      - name: Build public web
+        run: pnpm --filter @carlog/web build
+
+      - name: Build admin
+        run: pnpm --filter @carlog/admin build
