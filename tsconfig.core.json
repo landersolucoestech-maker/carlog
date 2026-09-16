@@ -1,0 +1,46 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".build/core",
+    "declaration": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@carlog/auth": [
+        "packages/auth/src/index.ts"
+      ],
+      "@carlog/events": [
+        "packages/events/src/index.ts"
+      ],
+      "@carlog/domain": [
+        "packages/domain/src/index.ts"
+      ],
+      "@carlog/communication": [
+        "packages/communication/src/index.ts"
+      ],
+      "@carlog/integrations": [
+        "packages/integrations/src/index.ts"
+      ],
+      "@carlog/automation": [
+        "packages/automation/src/index.ts"
+      ],
+      "@carlog/ai-skills": [
+        "packages/ai-skills/src/index.ts"
+      ],
+      "@carlog/config": [
+        "packages/config/src/index.ts"
+      ],
+      "@carlog/ui": [
+        "packages/ui/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".build"
+  ]
+}
