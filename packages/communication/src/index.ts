@@ -139,7 +139,7 @@ export function resolveContact(input: {
 }
 
 export function deriveWebsiteAttribution(url: string, referrer: string | null): WebsiteVisitorContext {
-  const parsed = new URL(url, 'https://carlogconnection.com');
+  const parsed = new URL(url, 'https://carlog.invalid');
   const params = parsed.searchParams;
   const sessionId = params.get('session_id') ?? crypto.randomUUID();
   const anonymousVisitorId = params.get('visitor_id') ?? crypto.randomUUID();
