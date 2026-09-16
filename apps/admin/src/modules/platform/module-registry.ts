@@ -24,6 +24,7 @@ export const modules: ModuleDefinition[] = [
   { key:'media',label:'Media',group:'Website',href:'/media',endpoint:'/v1/cms/media',permission:'cms.read',description:'Private CMS media library with signed delivery.' },
   { key:'navigation',label:'Navigation',group:'Website',href:'/navigation',endpoint:'/v1/cms/navigation',permission:'cms.read',description:'Public website navigation structure.' },
   { key:'forms',label:'Forms',group:'Website',href:'/forms',endpoint:'/v1/cms/forms',permission:'cms.read',description:'Website forms mapped to CRM ingestion.' },
+  { key:'marketing',label:'Marketing',group:'Website',href:'/marketing',endpoint:'/v1/marketing/content',permission:'marketing.read',description:'Content distribution, campaign attribution, conversions and performance.' },
   { key:'automations',label:'Automations',group:'Platform',href:'/automations',endpoint:'/v1/automations',permission:'automation.read',description:'Event-driven workflows, waits, retries and approvals.' },
   { key:'ai-skills',label:'AI Skills',group:'Platform',href:'/ai-skills',endpoint:'/v1/ai-skills',permission:'ai_skill.read',description:'Permissioned AI resources with explicit tools and approvals.' },
   { key:'integrations',label:'Integrations',group:'Platform',href:'/integrations',endpoint:'/v1/integrations',permission:'integration.read',description:'Provider accounts, capabilities, health and authorization.' },
