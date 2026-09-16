@@ -1,4 +1,4 @@
-name: Car Log GitHub Pages Preview
+name: Car Log Admin OS Preview
 
 on:
   push:
@@ -11,12 +11,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: carlog-pages-preview
+  group: carlog-admin-pages-preview
   cancel-in-progress: true
 
 jobs:
   build_preview:
-    name: Build Pages Preview
+    name: Build Admin Preview
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -51,9 +51,6 @@ jobs:
       - name: Build shared packages
         run: pnpm -r --filter './packages/**' run build
 
-      - name: Build public website preview
-        run: pnpm --filter @carlog/web build
-
       - name: Build admin preview
         run: pnpm --filter @carlog/admin build
 
@@ -63,8 +60,21 @@ jobs:
           set -euo pipefail
           rm -rf .pages-preview
           mkdir -p .pages-preview/admin
-          cp -R apps/web/out/. .pages-preview/
           cp -R apps/admin/out/. .pages-preview/admin/
+          cat > .pages-preview/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta http-equiv="refresh" content="0; url=./admin/">
+            <title>Car Log Admin OS Preview</title>
+          </head>
+          <body>
+            <p><a href="./admin/">Open Car Log Admin OS Preview</a></p>
+          </body>
+          </html>
+          HTML
           touch .pages-preview/.nojekyll
 
       - name: Configure GitHub Pages
@@ -78,10 +88,9 @@ jobs:
           path: .pages-preview
 
   deploy_preview:
-    name: Deploy Pages Preview
+    name: Deploy Admin Preview
     needs: build_preview
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - name: Deploy preview
         id: deployment
@@ -89,7 +98,6 @@ jobs:
 
       - name: Preview summary
         run: |
-          echo "### Car Log GitHub Pages Preview" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Website: ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Car Log Admin OS Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "- Admin: ${{ steps.deployment.outputs.page_url }}admin/" >> "$GITHUB_STEP_SUMMARY"
           echo "- Mode: read-only preview" >> "$GITHUB_STEP_SUMMARY"

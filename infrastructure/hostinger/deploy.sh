@@ -43,6 +43,8 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
   exit 1
 fi
 
+export COMPOSE_PROJECT_NAME=carlog-os
+
 "$ROOT_DIR/infrastructure/hostinger/apply-migrations.sh"
 
 docker compose -f infrastructure/docker/compose.production.yml build --pull
@@ -60,7 +62,6 @@ for attempt in {1..30}; do
   sleep 2
 done
 
-curl --fail --silent http://127.0.0.1:3000/ >/dev/null
 curl --fail --silent http://127.0.0.1:3001/ >/dev/null
 
 if command -v nginx >/dev/null 2>&1; then
@@ -74,15 +75,15 @@ if command -v nginx >/dev/null 2>&1; then
   fi
 
   if [[ ! -f /etc/letsencrypt/live/carlogconnection.com/fullchain.pem || ! -f /etc/letsencrypt/live/carlogconnection.com/privkey.pem ]]; then
-    echo "TLS certificate for carlogconnection.com is missing. Provision Let's Encrypt before enabling the HTTPS proxy." >&2
+    echo "TLS certificate for Car Log subdomains is missing. Provision the certificate before enabling the HTTPS proxy." >&2
     exit 1
   fi
 
   if [[ -d /etc/nginx/sites-available ]]; then
-    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog.conf /etc/nginx/sites-available/carlog.conf
-    "${privilege[@]}" ln -sfn /etc/nginx/sites-available/carlog.conf /etc/nginx/sites-enabled/carlog.conf
+    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog-os.conf /etc/nginx/sites-available/carlog-os.conf
+    "${privilege[@]}" ln -sfn /etc/nginx/sites-available/carlog-os.conf /etc/nginx/sites-enabled/carlog-os.conf
   else
-    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog.conf /etc/nginx/conf.d/carlog.conf
+    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog-os.conf /etc/nginx/conf.d/carlog-os.conf
   fi
 
   "${privilege[@]}" nginx -t
@@ -93,4 +94,4 @@ if command -v nginx >/dev/null 2>&1; then
   fi
 fi
 
-echo "Car Log deployed from dev at commit $local_head"
+echo "Car Log OS deployed from dev at commit $local_head"

@@ -58,9 +58,6 @@ jobs:
       - name: Build worker
         run: pnpm --filter @carlog/worker build
 
-      - name: Build public web
-        run: pnpm --filter @carlog/web build
-
       - name: Build admin
         run: pnpm --filter @carlog/admin build
 
@@ -153,16 +150,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors https://carlogconnection.com/ >/dev/null
           curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors https://admin.carlogconnection.com/ >/dev/null
           curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors https://api.carlogconnection.com/health | grep -q '"status":"ok"'
 
       - name: Deployment summary
         if: success()
         run: |
-          echo "### Car Log deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Car Log OS deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch: dev" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Website: https://carlogconnection.com/" >> "$GITHUB_STEP_SUMMARY"
           echo "- Admin: https://admin.carlogconnection.com/" >> "$GITHUB_STEP_SUMMARY"
           echo "- API: https://api.carlogconnection.com/health" >> "$GITHUB_STEP_SUMMARY"
