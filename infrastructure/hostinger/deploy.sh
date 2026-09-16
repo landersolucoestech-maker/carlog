@@ -38,6 +38,40 @@ set -a
 source .env.production
 set +a
 
+for name in ADMIN_URL API_URL NEXT_PUBLIC_API_URL CARLOG_TLS_CERT_NAME; do
+  if [[ -z "${!name:-}" ]]; then
+    echo "Missing required production environment variable: $name" >&2
+    exit 1
+  fi
+done
+
+for url_name in ADMIN_URL API_URL NEXT_PUBLIC_API_URL; do
+  value="${!url_name}"
+  if [[ "$value" =~ carlogconnection[.]com ]]; then
+    echo "$url_name uses the deprecated hostname and is not allowed." >&2
+    exit 1
+  fi
+done
+
+host_from_url() {
+  local value="$1"
+  value="${value#*://}"
+  value="${value%%/*}"
+  value="${value%%:*}"
+  if [[ ! "$value" =~ ^[A-Za-z0-9.-]+$ ]]; then
+    echo "Invalid hostname derived from URL: $1" >&2
+    exit 1
+  fi
+  printf '%s' "$value"
+}
+
+admin_host="$(host_from_url "$ADMIN_URL")"
+api_host="$(host_from_url "$API_URL")"
+if [[ ! "$CARLOG_TLS_CERT_NAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "CARLOG_TLS_CERT_NAME contains unsupported characters." >&2
+  exit 1
+fi
+
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
   echo "Docker with the Compose plugin is required on the Hostinger VPS." >&2
   exit 1
@@ -74,16 +108,25 @@ if command -v nginx >/dev/null 2>&1; then
     privilege=(sudo)
   fi
 
-  if [[ ! -f /etc/letsencrypt/live/carlogconnection.com/fullchain.pem || ! -f /etc/letsencrypt/live/carlogconnection.com/privkey.pem ]]; then
-    echo "TLS certificate for Car Log subdomains is missing. Provision the certificate before enabling the HTTPS proxy." >&2
+  cert_dir="/etc/letsencrypt/live/$CARLOG_TLS_CERT_NAME"
+  if [[ ! -f "$cert_dir/fullchain.pem" || ! -f "$cert_dir/privkey.pem" ]]; then
+    echo "TLS certificate is missing for CARLOG_TLS_CERT_NAME=$CARLOG_TLS_CERT_NAME." >&2
     exit 1
   fi
 
+  rendered_config="$(mktemp)"
+  trap 'rm -f "$rendered_config"' EXIT
+  sed \
+    -e "s/__ADMIN_HOST__/$admin_host/g" \
+    -e "s/__API_HOST__/$api_host/g" \
+    -e "s/__TLS_CERT_NAME__/$CARLOG_TLS_CERT_NAME/g" \
+    infrastructure/nginx/carlog-os.conf > "$rendered_config"
+
   if [[ -d /etc/nginx/sites-available ]]; then
-    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog-os.conf /etc/nginx/sites-available/carlog-os.conf
+    "${privilege[@]}" install -m 0644 "$rendered_config" /etc/nginx/sites-available/carlog-os.conf
     "${privilege[@]}" ln -sfn /etc/nginx/sites-available/carlog-os.conf /etc/nginx/sites-enabled/carlog-os.conf
   else
-    "${privilege[@]}" install -m 0644 infrastructure/nginx/carlog-os.conf /etc/nginx/conf.d/carlog-os.conf
+    "${privilege[@]}" install -m 0644 "$rendered_config" /etc/nginx/conf.d/carlog-os.conf
   fi
 
   "${privilege[@]}" nginx -t
