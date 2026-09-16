@@ -20,6 +20,7 @@ jobs:
       NEXT_PUBLIC_API_URL: http://localhost:4000
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_only
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
@@ -73,10 +74,9 @@ jobs:
     env:
       HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
       HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
-      HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
-      HOSTINGER_APP_PATH: ${{ secrets.HOSTINGER_APP_PATH }}
       HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-      HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+      HOSTINGER_PORT: ${{ vars.HOSTINGER_PORT || '22' }}
+      HOSTINGER_APP_PATH: ${{ vars.HOSTINGER_APP_PATH || '' }}
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
           set -euo pipefail
           test "$(git branch --show-current)" = "dev"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/dev)"
-          for name in HOSTINGER_HOST HOSTINGER_USER HOSTINGER_APP_PATH HOSTINGER_SSH_PRIVATE_KEY HOSTINGER_SSH_KNOWN_HOSTS; do
+          for name in HOSTINGER_HOST HOSTINGER_USER HOSTINGER_SSH_PRIVATE_KEY; do
             if [[ -z "${!name:-}" ]]; then
               echo "Missing required GitHub Actions secret: $name" >&2
               exit 1
@@ -104,23 +104,29 @@ jobs:
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$HOME/.ssh/carlog_hostinger"
           chmod 600 "$HOME/.ssh/carlog_hostinger"
-          printf '%s\n' "$HOSTINGER_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          ssh-keyscan -p "$HOSTINGER_PORT" -H "$HOSTINGER_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Deploy dev to Hostinger VPS
         shell: bash
         run: |
           set -euo pipefail
-          port="${HOSTINGER_PORT:-22}"
+          remote_path="$HOSTINGER_APP_PATH"
+          if [[ -z "$remote_path" ]]; then
+            remote_path='.local/share/carlog'
+          fi
           ssh \
             -i "$HOME/.ssh/carlog_hostinger" \
-            -p "$port" \
+            -p "$HOSTINGER_PORT" \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$HOSTINGER_USER@$HOSTINGER_HOST" \
-            "bash -s -- '$HOSTINGER_APP_PATH'" <<'REMOTE'
+            "bash -s -- '$remote_path'" <<'REMOTE'
           set -euo pipefail
           app_path="$1"
+          if [[ "$app_path" != /* ]]; then
+            app_path="$HOME/$app_path"
+          fi
           repo_url="https://github.com/landersolucoestech-maker/carlog.git"
 
           if [[ ! -d "$app_path/.git" ]]; then
