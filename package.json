@@ -2,14 +2,16 @@
   "name": "carlog",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@10",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "typecheck:core": "tsc -p tsconfig.core.json",
     "test:core": "node scripts/link-core-runtime.mjs && node --test tests/core.test.mjs",
     "check:core": "npm run typecheck:core && npm run test:core",
     "audit:architecture": "node scripts/architecture-audit.mjs",
     "build:packages": "pnpm -r --filter \"./packages/**\" run build",
-    "typecheck:packages": "pnpm -r --filter \"./packages/**\" run typecheck"
+    "typecheck:packages": "pnpm -r --filter \"./packages/**\" run typecheck",
+    "build": "pnpm run build:packages && pnpm --filter @carlog/api build && pnpm --filter @carlog/worker build && pnpm --filter @carlog/web build && pnpm --filter @carlog/admin build",
+    "typecheck": "pnpm run typecheck:packages && pnpm --filter @carlog/api typecheck && pnpm --filter @carlog/worker typecheck && pnpm --filter @carlog/web typecheck && pnpm --filter @carlog/admin typecheck"
   },
   "engines": {
     "node": ">=22"
