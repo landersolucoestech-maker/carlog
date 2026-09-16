@@ -8,6 +8,7 @@ import { registerIntegrationRoutes } from './modules/integrations/routes.js';
 import { registerDialpadWebhookRoutes } from './modules/integrations/dialpad-webhook.js';
 import { registerAutomationRoutes } from './modules/automation/routes.js';
 import { registerAiRoutes } from './modules/ai/routes.js';
+import { registerMeRoute } from './modules/platform/me.js';
 import { registerUsersRoutes } from './modules/platform/users.js';
 import { registerSettingsRoutes } from './modules/platform/settings.js';
 import { registerDashboardRoutes } from './modules/dashboard/routes.js';
@@ -28,6 +29,7 @@ app.get('/health',async()=>{await pool.query('select 1');return{status:'ok',serv
 await registerPublicLeadRoutes(app);
 await registerWebsiteChatRoutes(app);
 await registerDialpadWebhookRoutes(app);
+await registerMeRoute(app);
 await registerBrokerageRoutes(app);
 await registerCommunicationRoutes(app);
 await registerIntegrationRoutes(app);
