@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@carlog/integrations": "workspace:*",
     "@carlog/ui": "workspace:*",
     "@supabase/supabase-js": "2.116.0",
     "next": "16.0.1",
