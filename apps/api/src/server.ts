@@ -14,6 +14,7 @@ import { registerSettingsRoutes } from './modules/platform/settings.js';
 import { registerDashboardRoutes } from './modules/dashboard/routes.js';
 import { registerCmsRoutes } from './modules/cms/routes.js';
 import { registerDocumentRoutes } from './modules/documents/routes.js';
+import { registerMarketingRoutes } from './modules/marketing/routes.js';
 import { pool } from './lib/database.js';
 import { requestCorrelationId } from './lib/request-context.js';
 
@@ -40,6 +41,7 @@ await registerSettingsRoutes(app);
 await registerDashboardRoutes(app);
 await registerCmsRoutes(app);
 await registerDocumentRoutes(app);
+await registerMarketingRoutes(app);
 
 const port=Number(process.env.PORT??4000);const host=process.env.HOST??'0.0.0.0';
 const shutdown=async(signal:string)=>{app.log.info({signal},'Shutting down');await app.close();await pool.end();process.exit(0)};
