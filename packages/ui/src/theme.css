@@ -1,0 +1,15 @@
+:root {
+  --carlog-bg: #f5f6f8; --carlog-surface: #ffffff; --carlog-surface-muted: #f9fafb; --carlog-text: #16181d; --carlog-muted: #69707d;
+  --carlog-border: #e5e7eb; --carlog-accent: #ef6c24; --carlog-accent-hover: #d85814; --carlog-dark: #111318; --carlog-dark-elevated: #1a1d24;
+  --carlog-success: #168557; --carlog-warning: #ae6d00; --carlog-danger: #c63b3b; --carlog-radius-sm: 10px; --carlog-radius-md: 14px;
+  --carlog-radius-lg: 18px; --carlog-shadow: 0 10px 30px rgba(17, 19, 24, .08); --carlog-sidebar: 264px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--carlog-bg); color: var(--carlog-text); }
+button, input, select, textarea { font: inherit; } a { color: inherit; }
+.carlog-card { background: var(--carlog-surface); border: 1px solid var(--carlog-border); border-radius: var(--carlog-radius-md); }
+.carlog-button { border: 1px solid var(--carlog-border); border-radius: var(--carlog-radius-sm); padding: 10px 14px; background: var(--carlog-surface); font-weight: 700; cursor: pointer; }
+.carlog-button--primary { color: #fff; background: var(--carlog-accent); border-color: var(--carlog-accent); }
+.carlog-button--primary:hover { background: var(--carlog-accent-hover); }
+.carlog-badge { display: inline-flex; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 700; background: #eef0f3; }
