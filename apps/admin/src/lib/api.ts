@@ -2,7 +2,7 @@
 
 import { supabase } from './supabase';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.carlogconnection.com';
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 const previewMode = process.env.NEXT_PUBLIC_PREVIEW_MODE === '1';
 
 export type ApiErrorPayload = { error?: string; correlationId?: string };
@@ -35,6 +35,8 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     if (method !== 'GET') throw new Error('GitHub Pages preview is read-only');
     return previewPayload(path) as T;
   }
+
+  if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is required');
 
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
