@@ -1,12 +1,67 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authorize } from '../../auth/authorize.js';
-import { query,transaction } from '../../lib/database.js';
+import { query, transaction } from '../../lib/database.js';
 import { enqueueDomainEvent } from '../../lib/domain-events.js';
 import { recordAudit } from '../../lib/audit.js';
 import { requestCorrelationId } from '../../lib/request-context.js';
-const uuid=z.string().uuid();
-export async function registerLeadsRoutes(app:FastifyInstance):Promise<void>{
-app.get('/v1/leads',async request=>{await authorize(request,'lead.read');return query(`select l.*,c.first_name,c.last_name,c.email,c.phone,u.display_name as assigned_user_name from app.leads l join app.contacts c on c.id=l.contact_id left join app.users u on u.id=l.assigned_user_id order by l.created_at desc limit 500`)});
-app.patch('/v1/leads/:id',async request=>{const user=await authorize(request,'lead.update');const id=uuid.parse((request.params as{id:string}).id);const body=z.object({status:z.enum(['new','contacted','quoted','follow_up','lost']).optional(),assignedUserId:uuid.nullable().optional(),notes:z.string().max(10000).nullable().optional()}).parse(request.body);const cid=requestCorrelationId(request);return transaction(async client=>{const before=await client.query('select * from app.leads where id=$1 for update',[id]);if(!before.rows[0])throw Object.assign(new Error('Lead not found'),{statusCode:404});if((before.rows[0] as{status:string}).status==='won'&&body.status&&body.status!=='won')throw Object.assign(new Error('A won lead is owned by its accepted quote and cannot be manually reopened'),{statusCode:409});const updated=await client.query(`update app.leads set status=coalesce($2,status),assigned_user_id=case when $3::boolean then $4::uuid else assigned_user_id end,notes=case when $5::boolean then $6::text else notes end,updated_at=now() where id=$1 returning *`,[id,body.status??null,Object.prototype.hasOwnProperty.call(body,'assignedUserId'),body.assignedUserId??null,Object.prototype.hasOwnProperty.call(body,'notes'),body.notes??null]);await recordAudit(client,{actorUserId:user.id,action:'lead.updated',entityType:'lead',entityId:id,before:before.rows[0],after:updated.rows[0],correlationId:cid});await enqueueDomainEvent(client,{type:'lead.updated',source:'api',correlationId:cid,idempotencyKey:`lead.updated:${id}:${Date.now()}`,actorUserId:user.id,payload:{leadId:id,changes:body}});return updated.rows[0]})});
+
+const uuid = z.string().uuid();
+
+export async function registerLeadsRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/v1/leads', async request => {
+    await authorize(request, 'lead.read');
+    return query(`select l.*,c.first_name,c.last_name,c.email,c.phone,u.display_name as assigned_user_name from app.leads l join app.contacts c on c.id=l.contact_id left join app.users u on u.id=l.assigned_user_id order by l.created_at desc limit 500`);
+  });
+
+  app.patch('/v1/leads/:id', async request => {
+    const user = await authorize(request, 'lead.update');
+    const id = uuid.parse((request.params as { id: string }).id);
+    const body = z.object({
+      status: z.enum(['new', 'contacted', 'quoted', 'follow_up', 'lost']).optional(),
+      assignedUserId: uuid.nullable().optional(),
+      notes: z.string().max(10000).nullable().optional(),
+    }).parse(request.body);
+    const correlationId = requestCorrelationId(request);
+
+    return transaction(async client => {
+      const before = await client.query('select * from app.leads where id=$1 for update', [id]);
+      const current = before.rows[0] as { status: string } | undefined;
+      if (!current) throw Object.assign(new Error('Lead not found'), { statusCode: 404 });
+      if (current.status === 'won' && body.status !== undefined) {
+        throw Object.assign(new Error('A won lead is owned by its accepted quote and cannot be manually reopened'), { statusCode: 409 });
+      }
+
+      const updated = await client.query(
+        `update app.leads set status=coalesce($2,status),assigned_user_id=case when $3::boolean then $4::uuid else assigned_user_id end,notes=case when $5::boolean then $6::text else notes end,updated_at=now() where id=$1 returning *`,
+        [
+          id,
+          body.status ?? null,
+          Object.prototype.hasOwnProperty.call(body, 'assignedUserId'),
+          body.assignedUserId ?? null,
+          Object.prototype.hasOwnProperty.call(body, 'notes'),
+          body.notes ?? null,
+        ],
+      );
+
+      await recordAudit(client, {
+        actorUserId: user.id,
+        action: 'lead.updated',
+        entityType: 'lead',
+        entityId: id,
+        before: before.rows[0],
+        after: updated.rows[0],
+        correlationId,
+      });
+      await enqueueDomainEvent(client, {
+        type: 'lead.updated',
+        source: 'api',
+        correlationId,
+        idempotencyKey: `lead.updated:${id}:${Date.now()}`,
+        actorUserId: user.id,
+        payload: { leadId: id, changes: body },
+      });
+      return updated.rows[0];
+    });
+  });
 }
