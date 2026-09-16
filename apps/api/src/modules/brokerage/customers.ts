@@ -1,0 +1,2 @@
+import type { FastifyInstance } from 'fastify';import { authorize } from '../../auth/authorize.js';import { query } from '../../lib/database.js';
+export async function registerCustomersRoutes(app:FastifyInstance):Promise<void>{app.get('/v1/customers',async request=>{await authorize(request,'lead.read');return query(`select cu.*,c.first_name,c.last_name,c.email,c.phone,c.company_name,(select count(*) from app.orders o where o.customer_id=cu.id) as order_count from app.customers cu join app.contacts c on c.id=cu.contact_id order by cu.client_since desc limit 500`)})}
