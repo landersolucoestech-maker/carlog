@@ -81,9 +81,7 @@ jobs:
     name: Deploy Pages Preview
     needs: build_preview
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 15
     steps:
       - name: Deploy preview
         id: deployment
